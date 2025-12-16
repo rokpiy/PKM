@@ -15,8 +15,13 @@ Obsidian → Atomic Notes → Graph DB → Agentic Reasoning 시스템 구현
 - 한글/영문 관계 패턴 지원
 - spaCy 불필요 (경량화)
 
+### ✅ Stage 3: Neo4j Graph DB 구축 (완료)
+- Atomic Notes → Knowledge Graph 변환
+- Entity와 Relationship을 Graph로 저장
+- Neo4j Cypher 쿼리 지원
+- Graph 시각화 및 탐색
+
 ### 🔜 다음 단계
-- Stage 3: Neo4j Graph DB 구축
 - Stage 4: Knowledge Graph Reasoning
 - Stage 5: Agentic Reasoning
 - Stage 6: Self-Evolving System
@@ -74,7 +79,8 @@ API 키는 [Google AI Studio](https://makersuite.google.com/app/apikey)에서 �
 대화형 메뉴에서:
 - `1`: Stage 1만 실행 (Atomic Notes 생성)
 - `2`: Stage 2만 실행 (Entity 추출)
-- `3`: 전체 파이프라인 (Stage 1 + 2)
+- `3`: Stage 3만 실행 (Graph DB Import)
+- `4`: 전체 파이프라인 (Stage 1 + 2 + 3)
 
 ### Stage 1: Atomic Notes 생성
 
@@ -105,6 +111,75 @@ python test_entity_extraction.py
 - Atomic Notes에서 엔티티 개선
 - 추가 관계 추출
 - `*_enhanced.json` 파일로 저장
+
+### Stage 3: Neo4j Graph DB Import
+
+#### 1. Neo4j 설치 및 실행
+
+Docker를 사용하는 것이 가장 간단합니다:
+
+```bash
+# Neo4j 컨테이너 실행
+docker run -d \
+  -p 7474:7474 \
+  -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/password \
+  --name neo4j-pkm \
+  neo4j:latest
+```
+
+**포트:**
+- `7474`: Neo4j Browser (웹 UI)
+- `7687`: Bolt 프로토콜 (Python 연결)
+
+**기본 인증:**
+- Username: `neo4j`
+- Password: `password` (`.env`에서 변경 가능)
+
+#### 2. .env 파일에 Neo4j 설정 추가
+
+```bash
+# Neo4j Graph Database (Stage 3)
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=password
+```
+
+#### 3. Graph DB Import 실행
+
+Stage 1과 2 완료 후:
+
+```bash
+python tests/test_graph_import.py
+```
+
+**선택 옵션:**
+1. **기존 데이터 유지하고 추가** - 새로운 데이터만 추가
+2. **모든 데이터 삭제 후 새로 시작** - 완전히 새로 Import
+
+#### 4. Neo4j Browser에서 확인
+
+브라우저에서 `http://localhost:7474` 접속:
+
+**유용한 Cypher 쿼리:**
+
+```cypher
+// 모든 Atomic Notes 보기
+MATCH (n:AtomicNote) RETURN n LIMIT 25
+
+// 특정 Entity 주변 그래프 보기
+MATCH (e:Entity {name: "AI"})-[r]-(related)
+RETURN e, r, related
+
+// Entity 통계
+MATCH (e:Entity) RETURN e.domain as domain, count(*) as count
+
+// 가장 많이 연결된 Entity Top 10
+MATCH (e:Entity)-[r]-()
+RETURN e.name, count(r) as connections
+ORDER BY connections DESC
+LIMIT 10
+```
 
 ### 옵션 2: Python 코드로 직접 사용
 
@@ -274,7 +349,7 @@ Google Gemini 2.0 Flash Experimental 기준:
 ```bash
 ❌ JSON 파싱 실패
 ```
-→ Claude 응답이 JSON 형식이 아닐 수 있음. 노트 내용 확인
+→ Gemini 응답이 JSON 형식이 아닐 수 있음. 노트 내용 확인
 
 ### 패키지 설치 오류
 ```bash

@@ -41,11 +41,12 @@ echo "📋 PKM System Stages:"
 echo "=========================================="
 echo "1. Stage 1: Atomic Notes 생성"
 echo "2. Stage 2: Entity & Relationship 추출"
-echo "3. 전체 파이프라인 실행 (Stage 1 + 2)"
-echo "4. 종료"
+echo "3. Stage 3: Neo4j Graph DB Import"
+echo "4. 전체 파이프라인 실행 (Stage 1 + 2 + 3)"
+echo "5. 종료"
 echo ""
 
-read -p "선택 (1-4): " choice
+read -p "선택 (1-5): " choice
 
 case $choice in
     1)
@@ -67,6 +68,17 @@ case $choice in
         ;;
     3)
         echo ""
+        echo "🚀 Stage 3: Neo4j Graph DB Import"
+        echo "=========================================="
+        if [ ! -d "atomic_notes" ] || [ -z "$(ls -A atomic_notes 2>/dev/null)" ]; then
+            echo "❌ atomic_notes 폴더가 비어있습니다."
+            echo "   먼저 Stage 1과 2를 실행하세요."
+            exit 1
+        fi
+        python tests/test_graph_import.py
+        ;;
+    4)
+        echo ""
         echo "🚀 전체 파이프라인 실행"
         echo "=========================================="
         echo ""
@@ -82,11 +94,18 @@ case $choice in
             
             if [ $? -eq 0 ]; then
                 echo ""
-                echo "✅ 전체 파이프라인 완료!"
+                echo "📍 Stage 3: Neo4j Graph DB Import"
+                echo "----------------------------------------"
+                python tests/test_graph_import.py
+                
+                if [ $? -eq 0 ]; then
+                    echo ""
+                    echo "✅ 전체 파이프라인 완료!"
+                fi
             fi
         fi
         ;;
-    4)
+    5)
         echo "종료"
         exit 0
         ;;
