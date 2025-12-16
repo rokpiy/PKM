@@ -190,7 +190,7 @@ try:
     
     # Graph DB 통계
     print("\n📊 Graph DB 통계:")
-    stats = graph.get_statistics()
+    stats = graph.get_graph_stats()
     print(f"총 노드: {stats['total_nodes']}개")
     print(f"총 관계: {stats['total_relationships']}개")
     print(f"노드 타입별:")

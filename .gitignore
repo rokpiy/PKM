@@ -5,6 +5,7 @@ __pycache__/
 *.so
 .Python
 venv/
+.venv/
 env/
 ENV/
 build/
@@ -22,12 +23,14 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+uv.lock
 
 # API Keys and Secrets
 .env
 .env.local
 *.key
 secrets.json
+mcp_config.json
 
 # IDE
 .vscode/
@@ -56,4 +59,10 @@ Thumbs.db
 Obsidian Vault/
 Documents/Obsidian Vault/
 *.obsidian/
+
+# Neo4j Docker volumes
+neo4j/data/
+neo4j/logs/
+neo4j/import/
+neo4j/plugins/
 

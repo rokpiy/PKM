@@ -358,16 +358,16 @@ class GraphDBManager:
         with self.driver.session() as session:
             cypher_query = """
             MATCH (e:Entity)
-            WHERE e.name CONTAINS $query
+            WHERE e.name CONTAINS $search_query
             RETURN e
             ORDER BY e.name
             LIMIT $limit
             """
             
-            result = session.run(cypher_query, query=query, limit=limit)
+            result = session.run(cypher_query, search_query=query, limit=limit)
             return [dict(record["e"]) for record in result]
     
-    def get_statistics(self) -> Dict:
+    def get_graph_stats(self) -> Dict:
         """Graph DB 통계"""
         with self.driver.session() as session:
             stats_query = """

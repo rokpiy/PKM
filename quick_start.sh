@@ -33,21 +33,49 @@ if [ ! -f ".env" ]; then
 fi
 
 echo "✅ .env 파일 발견됨"
+
+# Neo4j Docker 확인
+echo ""
+echo "🐳 Neo4j Docker 상태 확인..."
+if ! docker info > /dev/null 2>&1; then
+    echo "⚠️  Docker가 실행되고 있지 않습니다."
+    echo "   Docker Desktop을 시작해주세요."
+    echo ""
+elif ! docker ps | grep -q neo4j-pkm; then
+    echo "⚠️  Neo4j Docker가 실행되고 있지 않습니다."
+    echo ""
+    read -p "Neo4j를 시작하시겠습니까? (y/n): " start_neo4j
+    if [ "$start_neo4j" = "y" ] || [ "$start_neo4j" = "Y" ]; then
+        ./scripts/start_neo4j.sh
+        if [ $? -ne 0 ]; then
+            echo "❌ Neo4j 시작 실패"
+            exit 1
+        fi
+    else
+        echo "ℹ️  Stage 3-5를 사용하려면 Neo4j가 필요합니다."
+        echo "   나중에 './scripts/start_neo4j.sh'로 시작할 수 있습니다."
+    fi
+else
+    echo "✅ Neo4j Docker 실행 중"
+fi
+
+echo ""
 echo "✅ 환경 설정 완료"
 echo ""
 
 # 메뉴 표시
-echo "📋 PKM System Stages:"
+echo "📋 PKM System - Knowledge Graph 구축:"
 echo "=========================================="
 echo "1. Stage 1: Atomic Notes 생성"
 echo "2. Stage 2: Entity & Relationship 추출"
 echo "3. Stage 3: Neo4j Graph DB Import"
-echo "4. Stage 4: Knowledge Graph Reasoning"
-echo "5. 전체 파이프라인 실행 (Stage 1 + 2 + 3)"
-echo "6. 종료"
+echo "4. 전체 파이프라인 실행 (Stage 1 + 2 + 3)"
+echo "5. 종료"
+echo ""
+echo "💡 Stage 1-3 완료 후 MCP Server로 Claude/Cursor에서 사용하세요!"
 echo ""
 
-read -p "선택 (1-6): " choice
+read -p "선택 (1-5): " choice
 
 case $choice in
     1)
@@ -80,12 +108,6 @@ case $choice in
         ;;
     4)
         echo ""
-        echo "🚀 Stage 4: Knowledge Graph Reasoning"
-        echo "=========================================="
-        python tests/test_kg_reasoning.py
-        ;;
-    5)
-        echo ""
         echo "🚀 전체 파이프라인 실행"
         echo "=========================================="
         echo ""
@@ -105,17 +127,23 @@ case $choice in
                 echo "----------------------------------------"
                 python tests/test_graph_import.py
                 
-                if [ $? -eq 0 ]; then
-                    echo ""
-                    echo "✅ Stage 1-3 완료!"
-                    echo ""
-                    echo "💡 Stage 4 (Knowledge Graph Reasoning)는 대화형 모드로 별도 실행하세요:"
-                    echo "   python tests/test_kg_reasoning.py"
-                fi
-            fi
-        fi
-        ;;
-    6)
+                    if [ $? -eq 0 ]; then
+                        echo ""
+                        echo "✅ Knowledge Graph 구축 완료!"
+                        echo ""
+                        echo "🔌 다음 단계: MCP Server 설정"
+                        echo "   1. Claude Desktop 설정 파일 편집:"
+                        echo "      code ~/Library/Application\\ Support/Claude/claude_desktop_config.json"
+                        echo ""
+                        echo "   2. MCP 서버 수동 실행 (테스트용):"
+                        echo "      uv run python mcp_server.py"
+                        echo ""
+                        echo "   자세한 내용: docs/MCP_SERVER_SETUP.md"
+                    fi
+                   fi
+               fi
+               ;;
+    5)
         echo "종료"
         exit 0
         ;;

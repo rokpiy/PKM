@@ -1,0 +1,32 @@
+services:
+  neo4j:
+    image: neo4j:5.14.0
+    container_name: neo4j-pkm
+    ports:
+      - "7474:7474"  # HTTP (Neo4j Browser)
+      - "7687:7687"  # Bolt (Python 연결)
+    environment:
+      - NEO4J_AUTH=neo4j/dlsdud1059^^
+      # 메모리 설정 (선택사항)
+      - NEO4J_server_memory_heap_initial__size=512m
+      - NEO4J_server_memory_heap_max__size=2G
+      - NEO4J_server_memory_pagecache_size=512m
+      # APOC 플러그인 자동 설치
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      # 데이터 영구 저장
+      - ./neo4j/data:/data
+      - ./neo4j/logs:/logs
+      - ./neo4j/import:/var/lib/neo4j/import
+      - ./neo4j/plugins:/plugins
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  default:
+    name: pkm-network
