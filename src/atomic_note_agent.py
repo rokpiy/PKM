@@ -8,6 +8,7 @@ import google.generativeai as genai
 import json
 import os
 import time
+import re
 from typing import List, Dict
 from datetime import datetime
 from pathlib import Path
@@ -205,13 +206,14 @@ JSON만 출력하고 다른 설명은 포함하지 마세요."""
                     "atomic_notes": []
                 }
     
-    def decompose_vault(self, vault_path: str, output_dir: str = "./atomic_notes") -> List[Dict]:
+    def decompose_vault(self, vault_path: str, output_dir: str = "./atomic_notes", skip_existing: bool = True) -> List[Dict]:
         """
         Obsidian Vault 전체를 Atomic Notes로 분해
         
         Args:
             vault_path: Obsidian vault 경로
             output_dir: 출력 디렉토리
+            skip_existing: True면 이미 존재하는 JSON 파일 스킵
             
         Returns:
             모든 Atomic Notes 리스트
@@ -224,6 +226,8 @@ JSON만 출력하고 다른 설명은 포함하지 마세요."""
         notes = loader.load_vault()
         
         all_atomic_notes = []
+        skipped_count = 0
+        processed_count = 0
         
         print(f"\n🚀 Vault 분해 시작: {len(notes)}개 노트")
         print("=" * 60)
@@ -236,30 +240,43 @@ JSON만 출력하고 다른 설명은 포함하지 마세요."""
                 print("⏭️  너무 짧은 노트 - 스킵")
                 continue
             
-            # Atomic Notes로 분해
-            result = self.decompose_note(note)
+            # JSON 파일 경로 (안전한 파일명)
+            safe_title = note.title.replace(' ', '_').replace('/', '_').replace('\\', '_')
+            output_file = os.path.join(output_dir, f"{safe_title}_atomic.json")
             
-            # 결과 저장
-            if result.get("atomic_notes"):
+            # 이미 존재하는 파일 확인
+            if skip_existing and os.path.exists(output_file):
+                print("♻️  이미 처리됨 - JSON 로드 중...")
+                with open(output_file, 'r', encoding='utf-8') as f:
+                    result = json.load(f)
                 all_atomic_notes.append(result)
+                skipped_count += 1
+                print(f"✅ 로드 완료: {len(result.get('atomic_notes', []))}개 Atomic Notes")
+            else:
+                # Atomic Notes로 분해
+                print("🔍 분석 중...")
+                result = self.decompose_note(note)
                 
-                # JSON 파일로 저장
-                output_file = os.path.join(
-                    output_dir, 
-                    f"{note.title.replace(' ', '_')}_atomic.json"
-                )
-                with open(output_file, 'w', encoding='utf-8') as f:
-                    json.dump(result, f, indent=2, ensure_ascii=False)
+                # 결과 저장
+                if result.get("atomic_notes"):
+                    all_atomic_notes.append(result)
+                    
+                    # JSON 파일로 저장
+                    with open(output_file, 'w', encoding='utf-8') as f:
+                        json.dump(result, f, indent=2, ensure_ascii=False)
+                    
+                    processed_count += 1
+                    print(f"💾 저장: {output_file}")
                 
-                print(f"💾 저장: {output_file}")
-            
-            # Rate Limit 방지를 위한 대기 (마지막 노트는 제외)
-            if i < len(notes):
-                print("⏳ 다음 노트 처리를 위해 2초 대기 중...")
-                time.sleep(2)
+                # Rate Limit 방지를 위한 대기 (마지막 노트는 제외)
+                if i < len(notes):
+                    print("⏳ 다음 노트 처리를 위해 2초 대기 중...")
+                    time.sleep(2)
         
         print("\n" + "=" * 60)
-        print(f"✅ 전체 완료: {len(all_atomic_notes)}개 파일 처리")
+        print(f"✅ 전체 완료: {len(all_atomic_notes)}개 파일")
+        print(f"   - 새로 처리: {processed_count}개")
+        print(f"   - 기존 로드: {skipped_count}개")
         print(f"📂 출력 디렉토리: {output_dir}")
         
         # 전체 통계
@@ -284,8 +301,14 @@ JSON만 출력하고 다른 설명은 포함하지 마세요."""
         source_title = atomic_notes_result.get("source_note", {}).get("title", "Unknown")
         
         for atomic_note in atomic_notes_result.get("atomic_notes", []):
-            # 파일명 생성
-            filename = f"{atomic_note['id']}_{atomic_note['title'].replace(' ', '_')}.md"
+            # 파일명 생성 (특수문자 제거)
+            safe_title = atomic_note['title'].replace(' ', '_')
+            # 파일시스템에서 허용되지 않는 문자 제거
+            safe_title = re.sub(r'[<>:"/\\|?*]', '', safe_title)
+            # 연속된 언더스코어 제거
+            safe_title = re.sub(r'_+', '_', safe_title)
+            
+            filename = f"{atomic_note['id']}_{safe_title}.md"
             filepath = os.path.join(output_dir, filename)
             
             # 마크다운 생성

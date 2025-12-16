@@ -42,11 +42,12 @@ echo "=========================================="
 echo "1. Stage 1: Atomic Notes 생성"
 echo "2. Stage 2: Entity & Relationship 추출"
 echo "3. Stage 3: Neo4j Graph DB Import"
-echo "4. 전체 파이프라인 실행 (Stage 1 + 2 + 3)"
-echo "5. 종료"
+echo "4. Stage 4: Knowledge Graph Reasoning"
+echo "5. 전체 파이프라인 실행 (Stage 1 + 2 + 3)"
+echo "6. 종료"
 echo ""
 
-read -p "선택 (1-5): " choice
+read -p "선택 (1-6): " choice
 
 case $choice in
     1)
@@ -79,6 +80,12 @@ case $choice in
         ;;
     4)
         echo ""
+        echo "🚀 Stage 4: Knowledge Graph Reasoning"
+        echo "=========================================="
+        python tests/test_kg_reasoning.py
+        ;;
+    5)
+        echo ""
         echo "🚀 전체 파이프라인 실행"
         echo "=========================================="
         echo ""
@@ -100,12 +107,15 @@ case $choice in
                 
                 if [ $? -eq 0 ]; then
                     echo ""
-                    echo "✅ 전체 파이프라인 완료!"
+                    echo "✅ Stage 1-3 완료!"
+                    echo ""
+                    echo "💡 Stage 4 (Knowledge Graph Reasoning)는 대화형 모드로 별도 실행하세요:"
+                    echo "   python tests/test_kg_reasoning.py"
                 fi
             fi
         fi
         ;;
-    5)
+    6)
         echo "종료"
         exit 0
         ;;

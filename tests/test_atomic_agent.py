@@ -157,18 +157,31 @@ elif choice == "2":
             print("  ⏭️  너무 짧은 노트 - 스킵")
             continue
         
-        result = agent.decompose_note(note)
-        
-        # JSON 저장
-        output_file = f"./atomic_notes/{note.title.replace('/', '_')}_atomic.json"
+        # JSON 파일 경로
+        safe_title = note.title.replace('/', '_').replace('\\', '_')
+        output_file = f"./atomic_notes/{safe_title}_atomic.json"
         os.makedirs("./atomic_notes", exist_ok=True)
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(result, f, indent=2, ensure_ascii=False)
         
-        print(f"  ✅ 완료: {len(result.get('atomic_notes', []))}개 생성")
-        print(f"  💾 저장: {output_file}")
+        # 이미 JSON 파일이 존재하는지 확인
+        if os.path.exists(output_file):
+            print(f"  ♻️  이미 처리됨 - JSON 로드 중...")
+            with open(output_file, 'r', encoding='utf-8') as f:
+                result = json.load(f)
+            print(f"  ✅ 로드 완료: {len(result.get('atomic_notes', []))}개 Atomic Notes")
+        else:
+            # 새로 분해
+            print(f"  🔄 Atomic Notes 생성 중...")
+            result = agent.decompose_note(note)
+            
+            # JSON 저장
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(result, f, indent=2, ensure_ascii=False)
+            
+            print(f"  ✅ 완료: {len(result.get('atomic_notes', []))}개 생성")
+            print(f"  💾 저장: {output_file}")
         
-        # 마크다운 저장
+        # 마크다운 저장 (항상 수행)
+        print(f"  📝 마크다운 생성 중...")
         agent.save_as_markdown(result)
     
     print("\n✅ 모든 선택된 노트 처리 완료!")
@@ -177,10 +190,43 @@ elif choice == "3":
     # 전체 Vault 분해
     print("\n⚠️  경고: 전체 Vault 분해는 시간과 비용이 많이 듭니다!")
     print(f"   총 {len(notes)}개의 노트를 처리합니다.")
+    
+    # 이미 처리된 파일 확인
+    existing_files = []
+    new_files = []
+    if os.path.exists("./atomic_notes"):
+        existing_files = [f for f in os.listdir("./atomic_notes") if f.endswith("_atomic.json")]
+    
+    if existing_files:
+        print(f"\n💡 이미 {len(existing_files)}개의 JSON 파일이 존재합니다.")
+        print("   옵션:")
+        print("   1. 기존 파일 유지하고 새 노트만 처리")
+        print("   2. 모든 파일 재생성 (API 비용 발생)")
+        print("   3. 기존 파일로 마크다운만 재생성")
+        sub_choice = input("\n선택 (1-3): ").strip()
+        
+        if sub_choice == "3":
+            # 마크다운만 재생성
+            print("\n📝 기존 JSON에서 마크다운 생성 중...")
+            for json_file in existing_files:
+                json_path = os.path.join("./atomic_notes", json_file)
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    result = json.load(f)
+                agent.save_as_markdown(result)
+                print(f"  ✅ {json_file} → 마크다운 생성")
+            print("\n✅ 마크다운 재생성 완료!")
+            exit(0)
+        elif sub_choice == "2":
+            skip_existing = False
+        else:
+            skip_existing = True
+    else:
+        skip_existing = False
+    
     confirm = input("\n계속하시겠습니까? (yes/no): ").strip().lower()
     
     if confirm == "yes":
-        results = agent.decompose_vault(VAULT_PATH)
+        results = agent.decompose_vault(VAULT_PATH, skip_existing=skip_existing)
         
         # 마크다운으로도 저장
         print("\n📝 마크다운 형식으로 저장 중...")

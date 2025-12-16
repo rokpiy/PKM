@@ -21,9 +21,14 @@ Obsidian → Atomic Notes → Graph DB → Agentic Reasoning 시스템 구현
 - Neo4j Cypher 쿼리 지원
 - Graph 시각화 및 탐색
 
+### ✅ Stage 4: Knowledge Graph Reasoning (완료)
+- Graph 기반 추론 엔진
+- 질문에서 엔티티 추출 및 Graph 탐색
+- 연관된 노트와 경로 자동 검색
+- LLM을 위한 Context Engineering
+
 ### 🔜 다음 단계
-- Stage 4: Knowledge Graph Reasoning
-- Stage 5: Agentic Reasoning
+- Stage 5: Agentic Reasoning (LLM 통합)
 - Stage 6: Self-Evolving System
 
 ## 🚀 설치
@@ -80,7 +85,8 @@ API 키는 [Google AI Studio](https://makersuite.google.com/app/apikey)에서 �
 - `1`: Stage 1만 실행 (Atomic Notes 생성)
 - `2`: Stage 2만 실행 (Entity 추출)
 - `3`: Stage 3만 실행 (Graph DB Import)
-- `4`: 전체 파이프라인 (Stage 1 + 2 + 3)
+- `4`: Stage 4만 실행 (Knowledge Graph Reasoning)
+- `5`: 전체 파이프라인 (Stage 1 + 2 + 3)
 
 ### Stage 1: Atomic Notes 생성
 
@@ -181,7 +187,47 @@ ORDER BY connections DESC
 LIMIT 10
 ```
 
-### 옵션 2: Python 코드로 직접 사용
+### Stage 4: Knowledge Graph Reasoning
+
+Stage 3 완료 후, Graph를 탐색하고 질문에 답변할 수 있습니다:
+
+```bash
+python tests/test_kg_reasoning.py
+```
+
+**대화형 옵션:**
+1. **대화형 질문** - 자유롭게 질문 입력
+2. **샘플 질문 테스트** - 미리 준비된 질문으로 테스트
+3. **엔티티 정보 조회** - 특정 엔티티의 상세 정보
+4. **엔티티 간 경로 탐색** - 두 개념이 어떻게 연결되어 있는지 확인
+
+**예시 질문:**
+- "AI와 머신러닝의 관계는?"
+- "스타트업에서 네트워킹이 중요한 이유는?"
+- "PKM 시스템은 어떻게 작동하나?"
+
+**Python 코드로 직접 사용:**
+
+```python
+from kg_reasoning import KGReasoner, create_graph_context_for_llm
+
+# Reasoner 초기화
+reasoner = KGReasoner("bolt://localhost:7687", ("neo4j", "password"))
+
+# 질문 분석 및 Graph 탐색
+result = reasoner.reasoning_chain("AI란 무엇인가?", depth=2)
+
+print(f"발견된 엔티티: {result['entities']}")
+print(f"관련 노트: {len(result['related_notes'])}개")
+
+# LLM을 위한 Context 생성
+context = create_graph_context_for_llm(result, max_tokens=1000)
+print(context)
+
+reasoner.close()
+```
+
+### 옵션 2: Python 코드로 직접 사용 (Stage 1)
 
 ```python
 import sys
