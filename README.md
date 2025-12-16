@@ -289,20 +289,27 @@ PKM 시스템을 **Claude Desktop, Cursor** 등에서 사용할 수 있습니다
 # 2. MCP Server 테스트
 uv run python mcp_server.py
 
-# 3. Claude Desktop 설정
-code ~/Library/Application\ Support/Claude/claude_desktop_config.json
+# 3. Gemini CLI 전역 설정 확인
+# 전역 설정 파일에 PKM MCP 서버가 이미 추가되어 있습니다
+cat ~/.gemini/settings.json
 ```
 
-**설정 예시 (uv 사용):**
+**전역 설정 파일 위치:**
+- `~/.gemini/settings.json` (홈 디렉토리)
+
+**설정 예시:**
 
 ```json
 {
   "mcpServers": {
     "pkm-knowledge-graph": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/PKM", "python", "mcp_server.py"],
+      "command": "/opt/homebrew/bin/uv",
+      "args": ["run", "python", "mcp_server.py"],
+      "cwd": "/Users/inyoungpark/Desktop/Projects/personal/PKM",
       "env": {
-        "NEO4J_URI": "bolt://localhost:7687",
+        "GEMINI_API_KEY": "your-key",
+        "GEMINI_MODEL": "gemini-2.5-flash",
+        "NEO4J_URI": "neo4j://127.0.0.1:7687",
         "NEO4J_USER": "neo4j",
         "NEO4J_PASSWORD": "password"
       }
@@ -313,12 +320,12 @@ code ~/Library/Application\ Support/Claude/claude_desktop_config.json
 
 👉 **[MCP Server 설정 가이드](docs/MCP_SERVER_SETUP.md)** - 자세한 설정 방법
 
-### Claude Desktop 사용 예시
+### Gemini CLI 사용 예시
 
 ```
 👤 User: AI와 머신러닝이 어떻게 연결되어 있는지 알려줘
 
-🤖 Claude: 
+🤖 Gemini: 
 [search_entities 도구 사용]
 [find_entity_path 도구 사용]
 [find_related_notes 도구 사용]

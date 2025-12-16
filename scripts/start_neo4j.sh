@@ -29,8 +29,8 @@ mkdir -p neo4j/data neo4j/logs neo4j/import neo4j/plugins
 
 # Docker Compose로 시작
 echo "📦 컨테이너 시작 중..."
-docker-compose up -d
-
+    docker-compose up -d
+    
 # Health check 대기
 echo "⏳ Neo4j 초기화 대기 중..."
 MAX_RETRIES=30
@@ -57,13 +57,13 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ Neo4j Docker 시작 완료!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
+        echo ""
 echo "📍 접속 정보:"
 echo "  🌐 Neo4j Browser: http://localhost:7474"
 echo "  🔌 Bolt: bolt://localhost:7687"
 echo "  👤 Username: neo4j"
 echo "  🔑 Password: .env 파일의 NEO4J_PASSWORD 참고"
-echo ""
+        echo ""
 echo "📝 유용한 명령어:"
 echo "  • 로그 확인: docker-compose logs -f neo4j"
 echo "  • 중지: docker-compose down"

@@ -1,10 +1,11 @@
 """
 Atomic Note Agent
 복잡한 문서를 원자적 단위(Atomic Notes)로 분해하는 AI Agent
-Google Gemini API 사용
+Google Gemini API 사용 (신형 SDK)
 """
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import json
 import os
 import time
@@ -13,11 +14,16 @@ from typing import List, Dict
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
-from obsidian_loader import ObsidianNote, ObsidianVaultLoader
 
-# .env 파일 로드
-env_path = Path(__file__).parent / '.env'
-load_dotenv(dotenv_path=env_path)
+# src 폴더 내 import
+try:
+    from obsidian_loader import ObsidianNote, ObsidianVaultLoader
+except ImportError:
+    from src.obsidian_loader import ObsidianNote, ObsidianVaultLoader
+
+# .env 파일 로드 (프로젝트 루트, 환경변수 덮어쓰기)
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(dotenv_path=env_path, override=True)
 
 
 class AtomicNoteAgent:
@@ -71,35 +77,33 @@ Atomic Note 원칙:
 
 반드시 유효한 JSON 형식으로만 응답해주세요."""
 
-    def __init__(self, api_key: str = None, model: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: str = None, model: str = "gemini-2.5-flash"):
         """
         Args:
             api_key: Google Gemini API 키 (없으면 환경변수에서 가져옴)
             model: 사용할 Gemini 모델
-                - gemini-2.5-flash: 최신 Flash 모델 (권장)
-                - gemini-1.5-flash: 안정적인 Flash 모델 (기본값)
-                - gemini-1.5-flash-latest: 최신 1.5 Flash
-                - gemini-pro: 기본 모델
+                - gemini-2.5-flash: 빠른 2.5 모델 (기본값, 무료)
+                - gemini-2.5-pro: 가장 강력한 2.5 모델 (유료)
+                - gemini-1.5-pro: 이전 Pro 모델
+                - gemini-1.5-flash: 이전 Flash 모델
         """
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY가 필요합니다. 환경변수에 설정하거나 직접 전달하세요.")
         
-        # Gemini 설정
-        genai.configure(api_key=self.api_key)
+        # Gemini 클라이언트 생성 (신형 SDK)
+        self.client = genai.Client(api_key=self.api_key)
         
-        # Gemini 2.5 Flash는 최대 65536 토큰 지원
+        # Gemini 2.5 모델은 최대 65536 토큰 지원
         max_tokens = 65536 if "2.5" in model else 8192
         
-        self.model = genai.GenerativeModel(
-            model_name=model,
-            generation_config={
-                "temperature": 0.2,  # 더 일관된 출력
-                "top_p": 0.95,
-                "top_k": 64,  # 더 넓은 선택지
-                "max_output_tokens": max_tokens,
-                "response_mime_type": "application/json",  # JSON 응답 강제
-            }
+        # Generation Config
+        self.generation_config = types.GenerateContentConfig(
+            temperature=0.2,  # 더 일관된 출력
+            top_p=0.95,
+            top_k=64,  # 더 넓은 선택지
+            max_output_tokens=max_tokens,
+            response_mime_type="application/json",  # JSON 응답 강제
         )
         self.model_name = model
     
@@ -143,8 +147,12 @@ JSON만 출력하고 다른 설명은 포함하지 마세요."""
         
         for attempt in range(max_retries):
             try:
-                # Gemini API 호출
-                response = self.model.generate_content(user_prompt)
+                # Gemini API 호출 (신형 SDK)
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=user_prompt,
+                    config=self.generation_config
+                )
                 response_text = response.text.strip()
                 
                 # JSON 추출 (코드 블록이 있는 경우 제거)
@@ -182,11 +190,11 @@ JSON만 출력하고 다른 설명은 포함하지 마세요."""
                 else:
                     print(f"❌ JSON 파싱 최종 실패: {e}")
                     print(f"응답 (처음 1000자): {response_text[:1000]}")
-                    return {
+                return {
                         "error": "JSON parsing failed after retries",
                         "raw_response": response_text[:1000],
-                        "atomic_notes": []
-                    }
+                    "atomic_notes": []
+                }
             except Exception as e:
                 error_msg = str(e)
                 
@@ -253,25 +261,25 @@ JSON만 출력하고 다른 설명은 포함하지 마세요."""
                 skipped_count += 1
                 print(f"✅ 로드 완료: {len(result.get('atomic_notes', []))}개 Atomic Notes")
             else:
-                # Atomic Notes로 분해
+            # Atomic Notes로 분해
                 print("🔍 분석 중...")
-                result = self.decompose_note(note)
+            result = self.decompose_note(note)
+            
+            # 결과 저장
+            if result.get("atomic_notes"):
+                all_atomic_notes.append(result)
                 
-                # 결과 저장
-                if result.get("atomic_notes"):
-                    all_atomic_notes.append(result)
-                    
-                    # JSON 파일로 저장
-                    with open(output_file, 'w', encoding='utf-8') as f:
-                        json.dump(result, f, indent=2, ensure_ascii=False)
-                    
+                # JSON 파일로 저장
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    json.dump(result, f, indent=2, ensure_ascii=False)
+                
                     processed_count += 1
-                    print(f"💾 저장: {output_file}")
-                
-                # Rate Limit 방지를 위한 대기 (마지막 노트는 제외)
-                if i < len(notes):
-                    print("⏳ 다음 노트 처리를 위해 2초 대기 중...")
-                    time.sleep(2)
+                print(f"💾 저장: {output_file}")
+            
+            # Rate Limit 방지를 위한 대기 (마지막 노트는 제외)
+            if i < len(notes):
+                print("⏳ 다음 노트 처리를 위해 2초 대기 중...")
+                time.sleep(2)
         
         print("\n" + "=" * 60)
         print(f"✅ 전체 완료: {len(all_atomic_notes)}개 파일")

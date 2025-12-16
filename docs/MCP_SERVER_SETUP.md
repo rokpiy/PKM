@@ -1,6 +1,6 @@
 # PKM Knowledge Graph MCP Server 설정 가이드
 
-이 가이드는 PKM 시스템을 MCP (Model Context Protocol) 서버로 설정하여 Claude Desktop, Cursor 등 다른 AI 도구에서 사용할 수 있도록 합니다.
+이 가이드는 PKM 시스템을 MCP (Model Context Protocol) 서버로 설정하여 **Gemini CLI**, Claude Desktop, Cursor 등 다른 AI 도구에서 사용할 수 있도록 합니다.
 
 ## 🚀 FastMCP 프레임워크
 
@@ -65,6 +65,63 @@ NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=password
 ```
+
+## 🔧 Gemini CLI 설정 (권장)
+
+### 1. 전역 설정 파일 수정
+
+Gemini CLI는 전역 설정 파일(`~/.gemini/settings.json`)을 사용합니다.
+
+**macOS:**
+```bash
+code ~/.gemini/settings.json
+```
+
+### 2. MCP Server 추가
+
+전역 설정 파일의 `mcpServers` 섹션에 다음을 추가:
+
+```json
+{
+  "mcpServers": {
+    "pkm-knowledge-graph": {
+      "command": "/opt/homebrew/bin/uv",
+      "args": [
+        "run",
+        "python",
+        "mcp_server.py"
+      ],
+      "cwd": "/Users/inyoungpark/Desktop/Projects/personal/PKM",
+      "env": {
+        "GEMINI_API_KEY": "your-gemini-api-key-here",
+        "GEMINI_MODEL": "gemini-2.5-flash",
+        "NEO4J_URI": "neo4j://127.0.0.1:7687",
+        "NEO4J_USER": "neo4j",
+        "NEO4J_PASSWORD": "password"
+      },
+      "timeout": 60000,
+      "trust": true
+    }
+  }
+}
+```
+
+**⚠️ 중요:**
+- `cwd` 경로를 실제 프로젝트 경로로 변경하세요
+- `GEMINI_API_KEY`를 실제 API 키로 변경하세요
+- Neo4j 비밀번호를 실제 비밀번호로 변경하세요
+
+### 3. Gemini CLI 실행
+
+터미널에서 어느 디렉토리에서든 Gemini CLI를 실행하면 PKM MCP 서버가 자동으로 연결됩니다:
+
+```bash
+gemini
+```
+
+### 4. MCP 도구 사용 확인
+
+Gemini CLI에서 "AI 관련 노트 찾아줘"와 같이 요청하면, MCP 서버의 도구들이 자동으로 호출됩니다.
 
 ## 🔧 Claude Desktop 설정
 
@@ -145,6 +202,8 @@ code ~/Library/Application\ Support/Claude/claude_desktop_config.json
 Claude Desktop에서 새 대화를 시작하고 🔌 아이콘을 클릭하면 "pkm-knowledge-graph" 서버가 나타나야 합니다.
 
 ## 🎨 Cursor 설정
+
+Cursor에서도 동일한 방식으로 MCP 서버를 설정할 수 있습니다.
 
 Cursor에서도 동일한 방식으로 MCP 서버를 설정할 수 있습니다.
 
@@ -257,7 +316,32 @@ AI와 머신러닝 사이에 2개의 연결 경로를 찾았습니다:
 경로 2: AI → 데이터 사이언스 → 머신러닝
 ```
 
-### 실제 대화 흐름:
+### Gemini CLI 사용 예시:
+
+```
+👤 User: AI 관련 노트 찾아줘
+
+🤖 Gemini: [search_entities("AI") 도구 사용]
+          [find_related_notes("AI") 도구 사용]
+
+AI와 관련된 노트를 찾았습니다:
+
+발견된 개념:
+- AI
+- Machine Learning
+- Deep Learning
+- Neural Network
+
+관련 노트 3개:
+1. "AI 기초 개념"
+   - 내용: 인공지능은...
+2. "머신러닝 개요"
+   - 내용: ...
+
+이 정보들은 모두 당신의 Obsidian 노트에서 가져온 것입니다.
+```
+
+### Claude Desktop 사용 예시:
 
 ```
 👤 User: 내가 지금까지 스타트업에 대해 어떤 내용을 정리했는지 알려줘
@@ -332,12 +416,19 @@ pip install mcp
 
 ## 🎉 완료!
 
-이제 Claude Desktop이나 Cursor에서 당신의 개인 Knowledge Graph를 활용할 수 있습니다!
+이제 **Gemini CLI**, Claude Desktop, Cursor에서 당신의 개인 Knowledge Graph를 활용할 수 있습니다!
 
 **다음 단계:**
+
+**Gemini CLI 사용:**
+1. 터미널에서 `gemini` 실행
+2. "AI 관련 노트 찾아줘"와 같이 자연스럽게 요청
+3. MCP 도구가 자동으로 호출되어 답변 제공
+
+**Claude Desktop 사용:**
 1. Claude Desktop을 열고 새 대화 시작
 2. 🔌 아이콘을 클릭하여 MCP 서버 확인
-3. "ask_pkm 도구를 사용해서 [질문]"과 같이 요청
+3. "search_entities 도구로 'AI' 찾아줘"와 같이 요청
 
 모든 답변이 당신의 Obsidian 노트를 기반으로 제공됩니다! 🚀
 
