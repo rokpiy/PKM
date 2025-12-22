@@ -75,7 +75,7 @@ cp .env.example .env
     ▼
 ┌─────────────────────┐
 │  Stage 1: Atomic    │  ← Gemini 2.5-flash
-│  Note Agent         │     (LLM 기반 분해)
+│  Note Agent         │  
 └─────────────────────┘
     │
     ├─ atomic_notes/*.json
